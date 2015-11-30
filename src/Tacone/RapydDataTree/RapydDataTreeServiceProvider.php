@@ -18,7 +18,7 @@ class RapydDataTreeServiceProvider extends ServiceProvider {
 	 */
 	public function boot()
 	{
-		$this->package('zofe/rapyd', 'datatree');
+		$this->package('tacone/rapyd-datatree', 'datatree');
 	}
 
 	/**
@@ -28,10 +28,10 @@ class RapydDataTreeServiceProvider extends ServiceProvider {
 	 */
 	public function register()
 	{
-//		$this->app->booting(function () {
-//			$loader  =  \Illuminate\Foundation\AliasLoader::getInstance();
-//			$loader->alias('Documenter', 'Zofe\Rapyd\Facades\Documenter');
-//		});
+		$this->app->booting(function () {
+			$loader  =  \Illuminate\Foundation\AliasLoader::getInstance();
+			$loader->alias('DataTree', 'Tacone\RapydDataTree\DataTree');
+		});
 	}
 
 	/**

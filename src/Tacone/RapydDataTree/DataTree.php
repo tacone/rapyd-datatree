@@ -13,17 +13,30 @@ class DataTree extends DataGrid
 {
     public $attributes = array("class" => "datatree", "method" => "POST");
     public $data;
+    static $css = [];
+    static $styles = [];
+    static $js = [];
+    static $scripts = [];
+
     /**
      * @var Node
      */
     public $source;
+    protected $maxDepth = 5;
+    protected $group = 0;
 
     public static function source($source)
     {
         if (!$source instanceof Node) {
             throw new \InvalidArgumentException('DataTree only works with Baum\Node instances');
         }
-        return parent::source($source);
+        $instance = parent::source($source);
+        $instance->attr('data-instance-id', spl_object_hash($instance));
+        static::css('css/datatree.css');
+        static::js('js/nestable/jquery.nestable.js');
+        static::js('js/datatree.js');
+        $instance->initJsWidget();
+        return $instance;
     }
 
     public function build($view = '')
@@ -49,9 +62,12 @@ class DataTree extends DataGrid
         }
         return \View::make($view, array('dg' => $this, 'buttons' => $this->button_container, 'label' => $this->label));
     }
-    protected function performSave() {
-        
+
+    protected function performSave()
+    {
+
     }
+
     protected function makeRow($item)
     {
         $row = new Row($item);
@@ -93,7 +109,7 @@ class DataTree extends DataGrid
     /**
      * @param string $name
      * @param string $position
-     * @param array  $options
+     * @param array $options
      *
      * @return $this
      */
@@ -104,4 +120,114 @@ class DataTree extends DataGrid
 
         return $this;
     }
+
+    public function maxDepth($value = null)
+    {
+        if (func_num_args()) {
+            $this->maxDepth = $value;
+            return $this;
+        }
+        return $this->maxDepth;
+    }
+
+    public function group($value = null)
+    {
+        if (func_num_args()) {
+            $this->group = $value;
+            return $this;
+        }
+        return $this->group;
+    }
+
+    // inline script
+
+    public function initJsWidget()
+    {
+        $script = '
+
+$("[data-instance-id=\\"' . $this->attributes['data-instance-id'] . '\\"] .datatree-inner-wrapper").nestable({
+    listNodeName: "ol",
+    itemNodeName: "li",
+    rootClass: "datatree-inner-wrapper",
+    listClass: "datatree-list",
+    itemClass: "datatree-item",
+    dragClass: "datatree-dragel",
+    handleClass: "datatree-handle",
+    collapsedClass: "datatree-collapsed",
+    placeClass: "datatree-placeholder",
+    noDragClass: "datatree-nodrag",
+    emptyClass: "datatree-empty",
+    expandBtnHTML: "<button data-action=\"expand\" type=\"button\">Expand</button>",
+    collapseBtnHTML: "<button data-action=\"collapse\" type=\"button\">Collapse</button>",
+    group: ' . $this->group . ',
+    maxDepth: ' . $this->maxDepth . ',
+    threshold: 20
+}).on("mousedown", "a", function (e) {
+    e.stopImmediatePropagation();
+}).each(function () {
+    var ol = $(this).children(".datatree-list");
+    if (ol.length) giveDepth(ol);
+}).on("change", function () {
+    var ol = $(this).children(".datatree-list");
+    if (ol.length) giveDepth(ol);
+    $(this).parents(".datatree").first().submit();
+});
+$(".datatree").submit(function () {
+    var action = $(this).attr("action") || document.location.href;
+    //return false;
+});
+        ';
+
+        static::$scripts[] = $script;
+    }
+
+    // copy paste from Rapyd
+
+    public static function scripts()
+    {
+        $buffer = "\n";
+
+        //js links
+        foreach (self::$js as $item) {
+            $buffer .= \HTML::script($item);
+        }
+
+        //inline scripts
+        if (count(self::$scripts)) {
+            $buffer .= sprintf("\n<script language=\"javascript\" type=\"text/javascript\">\n\$(document).ready(function () {\n\n %s \n\n});\n\n</script>\n", implode("\n", self::$scripts));
+        }
+
+        return $buffer;
+    }
+
+    public static function styles()
+    {
+        $buffer = "\n";
+
+        //css links
+        foreach (self::$css as $item) {
+            $buffer .= \HTML::style($item);
+        }
+
+        //inline styles
+        if (count(self::$styles)) {
+            $buffer .= sprintf("<style type=\"text/css\">\n%s\n</style>", implode("\n", self::$styles));
+        }
+
+        return $buffer;
+    }
+
+    public static function js($js)
+    {
+        if (!in_array('packages/tacone/rapyd-datatree/assets/' . $js, self::$js))
+            self::$js[] = 'packages/tacone/rapyd-datatree/assets/' . $js;
+    }
+
+    public static function css($css)
+    {
+        if (!in_array('packages/tacone/rapyd-datatree/assets/' . $css, self::$css))
+            self::$css[] = 'packages/tacone/rapyd-datatree/assets/' . $css;
+    }
+
+
 }

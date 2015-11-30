@@ -8,6 +8,24 @@ Laravel 5 users will be able to use it as well.
 
 Add it to composer, add the service provider and publish the assets.
 
+Add the service provider to app.php
+```
+        'Tacone\RapydDataTree\RapydDataTreeServiceProvider',
+```
+
+Add the css and js hooks in your template:
+
+In the `<head>`:
+```
+    {{ DataTree::styles() }}
+
+```
+
+At the end of the `<body>`:
+```
+    {{ DataTree::scripts() }}
+```
+
 ## Sample usage
 
 ```php

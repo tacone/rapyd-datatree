@@ -1,7 +1,7 @@
 
 
-<div class="datatree-w">
 {{ $dg->open }}
+<div class="datatree-inner-wrapper">
     <?php $rows = $dg->rows ?>
     @if ($rows)
         @include('datatree::item')
@@ -10,8 +10,8 @@
             No items
         </div>
     @endif
+</div>
 
-{{ $dg->close }}
     @include('rapyd::toolbar', array('label'=>$label, 'buttons_right'=>$buttons['BR'], 'buttons_left'=>$buttons['BL']))
 
-</div>
+{{ $dg->close }}
