@@ -24,6 +24,7 @@ class DataTree extends DataGrid
     public $source;
     protected $maxDepth = 5;
     protected $group = 0;
+    protected $name = 'items';
 
     public static function source($source)
     {
@@ -35,12 +36,13 @@ class DataTree extends DataGrid
         static::css('css/datatree.css');
         static::js('js/nestable/jquery.nestable.js');
         static::js('js/datatree.js');
-        $instance->initJsWidget();
         return $instance;
     }
 
     public function build($view = '')
     {
+        $this->initJsWidget();
+
         $view == '' and $view = 'datatree::datatree';
 
         $this->open = \Form::open($this->attributes);
@@ -52,29 +54,64 @@ class DataTree extends DataGrid
 
         $this->data = $this->source->getDescendants()->toHierarchy();
         Persistence::save();
-        foreach ($this->data as $item) {
-            $row = $this->makeRow($item);
-            foreach ($item['children'] as $children) {
-                $row->children[] = $this->makeRow($children);
-            }
+        $this->rows = $this->makeRowsRecursive($this->data);
 
-            $this->rows[] = $row;
-        }
         return \View::make($view, array('dg' => $this, 'buttons' => $this->button_container, 'label' => $this->label));
+    }
+
+    protected function makeRowsRecursive($data, $depth = 0)
+    {
+        $rows = [];
+        foreach ($data as $item) {
+            $row = $this->makeRow($item);
+            $row->children = $this->makeRowsRecursive($item['children'], $depth + 1);
+            $rows[] = $row;
+        }
+        return $rows;
     }
 
     protected function performSave()
     {
+        $var = \Input::get($this->name);
+        if (is_string($var)) {
+            $var = json_decode($var, true);
+        }
+        $this->saveItemsRecursive($this->source->getKey(), $var);
+    }
 
+    protected function saveItemsRecursive($parentId, $children)
+    {
+        try {
+
+            $model = $this->source->getModel();
+            foreach (array_reverse((array)$children) as $child) {
+                $first = $model->find($parentId)->children()->first();
+                $childModel = $model->find($child['id']);
+                if (!$first || !$first->equals($childModel)) {
+                    $childModel->makeFirstChildOf($model->find($parentId));
+                }
+
+                if (!empty($child['children'])) {
+                    $this->saveItemsRecursive($child['id'], $child['children']);
+                }
+            }
+        } catch (\Exception $e) {
+//            var_dump($parentId, $child['id']);
+//            xxx($model->find($parentId)->children()->first());
+//            xxx($model->find($child['id']) , $model->find($parentId));
+            throw $e;
+        }
     }
 
     protected function makeRow($item)
     {
         $row = new Row($item);
+
         $row->children = array();
 
         $row->attributes(array(
             'class' => 'datatree-item',
+            'data-id' => $row->data->getKey()
         ));
         $index = 0;
         foreach ($this->columns as $column) {
@@ -139,43 +176,59 @@ class DataTree extends DataGrid
         return $this->group;
     }
 
+    public function name($value = null)
+    {
+        if (func_num_args()) {
+            $this->name = $value;
+            return $this;
+        }
+        return $this->name;
+    }
+
     // inline script
 
     public function initJsWidget()
     {
         $script = '
 
-$("[data-instance-id=\\"' . $this->attributes['data-instance-id'] . '\\"] .datatree-inner-wrapper").nestable({
-    listNodeName: "ol",
-    itemNodeName: "li",
-    rootClass: "datatree-inner-wrapper",
-    listClass: "datatree-list",
-    itemClass: "datatree-item",
-    dragClass: "datatree-dragel",
-    handleClass: "datatree-handle",
-    collapsedClass: "datatree-collapsed",
-    placeClass: "datatree-placeholder",
-    noDragClass: "datatree-nodrag",
-    emptyClass: "datatree-empty",
-    expandBtnHTML: "<button data-action=\"expand\" type=\"button\">Expand</button>",
-    collapseBtnHTML: "<button data-action=\"collapse\" type=\"button\">Collapse</button>",
-    group: ' . $this->group . ',
-    maxDepth: ' . $this->maxDepth . ',
-    threshold: 20
-}).on("mousedown", "a", function (e) {
-    e.stopImmediatePropagation();
-}).each(function () {
-    var ol = $(this).children(".datatree-list");
-    if (ol.length) giveDepth(ol);
-}).on("change", function () {
-    var ol = $(this).children(".datatree-list");
-    if (ol.length) giveDepth(ol);
-    $(this).parents(".datatree").first().submit();
-});
-$(".datatree").submit(function () {
-    var action = $(this).attr("action") || document.location.href;
-    //return false;
-});
+$("[data-instance-id=\\"' . $this->attributes['data-instance-id'] . '\\"]").each(function(){
+ var root = $(this);
+ var form = root.find(".datatree-values");
+ root.find(".datatree-inner-wrapper").nestable({
+        listNodeName: "ol",
+        itemNodeName: "li",
+        rootClass: "datatree-inner-wrapper",
+        listClass: "datatree-list",
+        itemClass: "datatree-item",
+        dragClass: "datatree-dragel",
+        handleClass: "datatree-handle",
+        collapsedClass: "datatree-collapsed",
+        placeClass: "datatree-placeholder",
+        noDragClass: "datatree-nodrag",
+        emptyClass: "datatree-empty",
+        expandBtnHTML: "<button data-action=\"expand\" type=\"button\">Expand</button>",
+        collapseBtnHTML: "<button data-action=\"collapse\" type=\"button\">Collapse</button>",
+        group: ' . $this->group . ',
+        maxDepth: ' . $this->maxDepth . ',
+        threshold: 20
+    }).on("mousedown", "a", function (e) {
+        e.stopImmediatePropagation();
+    }).each(function () {
+        var ol = $(this).children(".datatree-list");
+        if (ol.length) rapyd.datatree.updateDepth(ol);
+        rapyd.datatree.updateForm($(this), form, "' . $this->name . '");
+    }).on("change", function () {
+        var ol = $(this).children(".datatree-list");
+        if (ol.length) rapyd.datatree.updateDepth(ol);
+        var updated = rapyd.datatree.updateForm($(this), form, "' . $this->name . '");
+        // $(this).parents(".datatree").first().submit();
+
+    });
+    $(".datatree").submit(function () {
+        var action = $(this).attr("action") || document.location.href;
+        //return false;
+    });
+ });
         ';
 
         static::$scripts[] = $script;

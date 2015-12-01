@@ -11,7 +11,7 @@
         </div>
     @endif
 </div>
-
+<div class="datatree-values"></div>
     @include('rapyd::toolbar', array('label'=>$label, 'buttons_right'=>$buttons['BR'], 'buttons_left'=>$buttons['BL']))
 
 {{ $dg->close }}
