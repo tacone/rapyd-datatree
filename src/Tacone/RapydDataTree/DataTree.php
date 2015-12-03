@@ -138,18 +138,28 @@ class DataTree extends DataGrid
 
         $movedIds = $movements->keys();
 
-        // the elements of the bigger tree that did not change their
-        // parent_id
-
-        $unmoved = $nodes->except($movedIds);
-
-        // the elements that were moved to a different parent
-
-        $moved = $nodes->only($movedIds);
-
         // index the elements by primary key for speedy retrieval
 
         $dictionary = $nodes->getDictionary();
+
+        // the elements of the bigger tree that did not change their
+        // parent_id
+
+        $unmoved = new \Baum\Extensions\Eloquent\Collection();
+
+        foreach ($dictionary as $n) {
+            if (!in_array($n->getKey(),$movedIds)){
+                $unmoved[] = $n;
+            }
+        }
+
+        // the elements that were moved to a different parent
+
+        $moved = new \Baum\Extensions\Eloquent\Collection();
+
+        foreach ($movedIds as $i) {
+            $moved[] = $dictionary[$i];
+        }
 
         // this is the column that Baum uses to order the tree
         // the default is `lft`
@@ -244,7 +254,7 @@ class DataTree extends DataGrid
 
     protected function sortMovementsByDepth($tree, &$children, $id, $depth = 1)
     {
-        foreach (array_reverse($tree) as $node) {
+        foreach ($tree as $node) {
             if (!empty($node['children'])) {
                 $this->sortMovementsByDepth($node['children'], $children, $node['id'], $depth + 1);
             }
