@@ -18,7 +18,6 @@ class DataTree extends DataGrid
     static $styles = [];
     static $js = [];
     static $scripts = [];
-    static $modelsCache = [];
 
     /**
      * @var Node
@@ -74,11 +73,6 @@ class DataTree extends DataGrid
             $rows[] = $row;
         }
         return $rows;
-    }
-
-    protected function clearModelCache()
-    {
-        static::$modelsCache = [];
     }
 
     protected function lockAndSave()
@@ -246,14 +240,6 @@ class DataTree extends DataGrid
                 ->where($this->source->getKeyName(), $id)
                 ->update($fields);
         }
-    }
-
-    protected function flattenTree($children, $tree, $id)
-    {
-        foreach ($children as $node) {
-
-        }
-
     }
 
     protected function sortMovementsByDepth($tree, &$children, $id, $depth = 1)
