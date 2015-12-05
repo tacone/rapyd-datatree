@@ -1,10 +1,15 @@
 # DataTree for Rapyd
 
-This is a sortable widget only compatible with Laravel 4 and Rapyd 1.3.x.
-Hopefully once completed it will be merged in the master of Rapyd so that
-Laravel 5 users will be able to use it as well.
+If you use Laravel 5 you don't need this repository, the datatree has been
+merged in the core of [Rapyd](https://github.com/zofe/rapyd-laravel/)!
+
+If you use Laravel 4.2 and Rapyd you can use this repo to add the DataTree
+to your app.
 
 ## Installation
+
+Before beginning, you need to add to your composer Baum\Baum as we don't add it
+automatically for you.
 
 Add it to composer, add the service provider and publish the assets.
 
