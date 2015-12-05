@@ -100,6 +100,13 @@ class DataTree extends DataGrid
             $var = json_decode($var, true);
         }
 
+        if (!$var) {
+
+            // the client submitted an empty tree, there's nothing to move
+
+            return;
+        }
+
         $movements = [];
         $subtreeId = $this->source->getKey();
 
