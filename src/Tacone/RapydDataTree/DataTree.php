@@ -26,6 +26,8 @@ class DataTree extends DataGrid
     protected $maxDepth = 5;
     protected $group = 0;
     protected $name = 'items';
+    protected $onChange;
+    protected $autoSave;
 
     public static function source($source)
     {
@@ -339,6 +341,15 @@ class DataTree extends DataGrid
         return $this->maxDepth;
     }
 
+    public function onChange($value = null)
+    {
+        if (func_num_args()) {
+            $this->onChange = $value;
+            return $this;
+        }
+        return $this->onChange;
+    }
+
     public function group($value = null)
     {
         if (func_num_args()) {
@@ -346,6 +357,15 @@ class DataTree extends DataGrid
             return $this;
         }
         return $this->group;
+    }
+
+    public function autoSave($value = null)
+    {
+        if (func_num_args()) {
+            $this->autoSave = $value;
+            return $this;
+        }
+        return $this->autoSave;
     }
 
     public function name($value = null)
@@ -361,6 +381,9 @@ class DataTree extends DataGrid
 
     public function initJsWidget()
     {
+        $onChange = $this->onChange ?: '';
+        $ajax = $this->autoSave ? '$.post("", {"'.$this->name().'": $(this).nestable("serialize")});' : '';
+
         $script = '
 
 $("[data-instance-id=\\"' . $this->attributes['data-instance-id'] . '\\"]").each(function(){
@@ -393,6 +416,8 @@ $("[data-instance-id=\\"' . $this->attributes['data-instance-id'] . '\\"]").each
         var ol = $(this).children(".datatree-list");
         if (ol.length) rapyd.datatree.updateDepth(ol);
         var updated = rapyd.datatree.updateForm($(this), form, "' . $this->name . '");
+        '.$ajax.'
+        '.$onChange.'
         // $(this).parents(".datatree").first().submit();
 
     });
