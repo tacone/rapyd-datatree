@@ -221,7 +221,11 @@ class DataTree extends DataGrid
 
         $newRoot = $newTree->first();
         if ($newRoot->getKey() != $root->getKey() || count($newTree) != 1) {
-            throw new \LogicException("Invalid tree");
+            throw new \LogicException(
+                "Invalid tree: root id changed from ".$root->getKey()
+                ." to ".$newRoot->getKey().", number of roots is ".count($newTree)
+                ."(ids: ".join(", ", $newTree->lists('id')).")"
+            );
         }
 
         // now we take the new tree and recursively recalculate the left, right
